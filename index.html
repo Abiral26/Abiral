@@ -166,6 +166,7 @@ const save=()=>{try{localStorage.setItem('abiral-v1',JSON.stringify(S))}catch(e)
 const me=()=>S.users.find(u=>u.email===S.session);
 const cartCount=()=>S.cart.reduce((a,c)=>a+c.qty,0);
 const prod=id=>P.find(p=>p.id==id);
+S.cart=(Array.isArray(S.cart)?S.cart:[]).filter(c=>c&&prod(c.id)&&Number.isInteger(c.qty)&&c.qty>0).map(c=>({id:prod(c.id).id,qty:Math.min(20,c.qty)}));save();
 let tt;function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(tt);tt=setTimeout(()=>e.hidden=true,2200)}
 const STAT=["Placed","Packed","Shipped","Delivered"];
 const SHIP={std:{n:"Standard, 3 to 5 days",p:5.99},exp:{n:"Express, 1 to 2 days",p:12.99}};
@@ -242,7 +243,7 @@ function vCheckout(){
     const addr={name:g('a-name'),st:g('a-st'),city:g('a-city'),state:g('a-state'),zip:g('a-zip'),ph:g('a-ph')};
     if(!addr.name||!addr.st||!addr.city)return err('Enter your name, street and city.');
     if(!/^\d{5}$/.test(addr.zip))return err('ZIP code must be 5 digits.');
-    const num=g('c-num').replace(/\s/g,'');if(num.length!==16)return err('Card number must be 16 digits.');
+    const num=g('c-num').replace(/\s/g,'');if(!/^\d{16}$/.test(num))return err('Card number must be 16 digits.');
     if(!/^(0[1-9]|1[0-2])\/\d\d$/.test(g('c-exp')))return err('Enter expiry as MM/YY.');
     if(!/^\d{3,4}$/.test(g('c-cvc')))return err('Enter the 3 or 4 digit CVC.');
     const ship=document.querySelector('input[name=ship]:checked').value,t=totals(items,ship);
@@ -309,7 +310,7 @@ function route(){
   else if(r==='checkout')vCheckout();else if(r==='orders')vOrders();else if(r==='account')vAccount();
   else if(r.startsWith('order-'))vOrder(r.slice(6));else if(r.startsWith('return-'))vReturn(r.slice(7));else vHome();
 }
-function addCart(id,n){const c=S.cart.find(x=>x.id==id);if(c)c.qty+=n;else S.cart.push({id:+id,qty:n});save();tabs((location.hash||'#home').slice(1))}
+function addCart(id,n){const c=S.cart.find(x=>x.id==id);if(c)c.qty=Math.min(20,c.qty+n);else S.cart.push({id:+id,qty:Math.min(20,n)});save();tabs((location.hash||'#home').slice(1))}
 document.addEventListener('click',e=>{
   const t=e.target.closest('button,[data-go]');if(!t)return;const d=t.dataset;
   if(d.go){location.hash='#'+d.go;return}
@@ -317,7 +318,7 @@ document.addEventListener('click',e=>{
   else if(d.addq){addCart(d.addq,qtyP);toast('Added to cart');qtyP=1}
   else if(d.buy){addCart(d.buy,qtyP);qtyP=1;location.hash='#checkout'}
   else if(d.qp){qtyP=Math.max(1,Math.min(9,qtyP+ +d.qp));$('#qp').textContent=qtyP}
-  else if(d.cq){const c=S.cart.find(x=>x.id==d.cq);c.qty+=+d.d;if(c.qty<1)S.cart=S.cart.filter(x=>x!==c);save();tabs('cart');vCart()}
+  else if(d.cq){const c=S.cart.find(x=>x.id==d.cq);c.qty=Math.min(20,c.qty+ +d.d);if(c.qty<1)S.cart=S.cart.filter(x=>x!==c);save();tabs('cart');vCart()}
   else if(d.cat){cat=d.cat;vHome()}
   else if(d.clear!==undefined){q='';vHome()}
   else if(d.auth){authMode=d.auth;vAccount()}
